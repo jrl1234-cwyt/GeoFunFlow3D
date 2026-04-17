@@ -15,7 +15,6 @@ try:
 except ImportError:
     HAS_PY3D = False
 
-# 开启底层加速
 torch.backends.cuda.enable_mem_efficient_sdp(True)
 torch.backends.cuda.enable_flash_sdp(True)
 torch.backends.cuda.matmul.allow_tf32 = True
@@ -32,36 +31,24 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 CKPT_DIR = "checkpoints_unified"
 os.makedirs(CKPT_DIR, exist_ok=True)
 
-# ==========================================
-# 🚀 论文指标对齐：评估函数模块
-# ==========================================
 def calc_blendednet_metrics(pred_real, target_real):
-    """
-    BlendedNet 评估指标: MAE 和 Relative L2 Error
-    数学公式: Rel_L2 = ||U_pred - U_ref||_2 / ||U_ref||_2
-    """
+
     B = pred_real.shape[0]
     with torch.no_grad():
-        # MAE
         mae = torch.mean(torch.abs(pred_real - target_real)).item()
-        # Relative L2 (按样本计算后求均值)
         diff_l2 = torch.linalg.norm((pred_real - target_real).reshape(B, -1), dim=1)
         ref_l2 = torch.linalg.norm(target_real.reshape(B, -1), dim=1) + 1e-12
         rel_l2 = torch.mean(diff_l2 / ref_l2).item()
     return mae, rel_l2
 
 def calc_rotor37_metrics(pred_real, target_real):
-    """
-    Rotor37 评估指标: PLAID 官方定义的 RRMSE
-    数学公式: RRMSE = sqrt( 1/n * sum( ||U_ref - U_pred||_2^2 / (N * ||U_ref||_inf^2) ) )
-    """
     B = pred_real.shape[0]
     N_points = target_real.shape[2] * target_real.shape[3] * target_real.shape[4]
 
     with torch.no_grad():
         rrmse_batch = []
         for i in range(B):
-            ref_i = target_real[i].reshape(-1)  # 展平所有物理场
+            ref_i = target_real[i].reshape(-1) 
             pred_i = pred_real[i].reshape(-1)
 
             diff_sq = torch.sum((ref_i - pred_i) ** 2)
@@ -73,7 +60,6 @@ def calc_rotor37_metrics(pred_real, target_real):
         rrmse_final = torch.sqrt(torch.mean(torch.stack(rrmse_batch))).item()
     return rrmse_final
 
-# ==========================================
 
 def point_to_grid_interpolate(point_coords, point_values, grid_size=(32, 32, 32), k=4):
     B, N, _ = point_coords.shape
@@ -137,8 +123,7 @@ def train_flow(args):
     if hasattr(dit, 'use_checkpoint'): dit.use_checkpoint = False
     for p in dit.parameters(): p.requires_grad = True
 
-    # 🚀 极速优化 1：提速大杀器：编译整个 DiT 模型（仅限 PyTorch 2.x）
-    # 它会在第一个 Epoch 的第 1 步卡住几分钟进行编译，之后速度会起飞！
+
     if int(torch.__version__.split('.')[0]) >= 2:
         print("🔥 正在启动 torch.compile 内核级算子融合 (首步可能会卡住几分钟进行底层编译，请耐心等待)...")
         dit = torch.compile(dit)
@@ -216,14 +201,11 @@ def train_flow(args):
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
 
-            # 🚀 极速优化 2：只在每个 Epoch 的最后一步，或者每 50 步评估一次
             if (step + 1) == len(indices) or step % 50 == 0:
                 with torch.no_grad():
                     with autocast():
                         z1_gen_eval = zt + (1 - t) * v_pred
                         pred_grid_eval, _ = fae.decoder(z1_gen_eval.float())
-
-                        # 逆归一化以计算真实指标
                         mean_t = torch.tensor(stats['mean']).view(1, -1, 1, 1, 1).to(DEVICE)
                         std_t = torch.tensor(stats['std']).view(1, -1, 1, 1, 1).to(DEVICE)
                         pred_real = pred_grid_eval * std_t + mean_t
@@ -242,8 +224,6 @@ def train_flow(args):
             epoch_metrics["fm"].append(loss_fm.item())
             epoch_metrics["phys"].append(loss_phys.item())
             pbar.set_postfix(FM=f"{loss_fm.item():.4f}", Phys=f"{loss_phys.item():.2e}", Eval=latest_print_metric)
-
-        # 🚀 按照论文指标保存 Best Model
         current_epoch_metric = 999.0
         if args.task_type == 'surface_aerodynamics' and len(epoch_metrics["rel_l2"]) > 0:
             current_epoch_metric = np.mean(epoch_metrics["rel_l2"])
