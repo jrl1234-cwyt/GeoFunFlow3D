@@ -2,8 +2,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-# 🚀 尝试检测 PyTorch3D
 try:
     from pytorch3d.ops import knn_points
     HAS_PY3D = True
@@ -11,7 +9,6 @@ except ImportError:
     HAS_PY3D = False
 
 class SEModule(nn.Module):
-    """针对流场特征设计的通道注意力模块"""
     def __init__(self, channels, reduction=4):
         super().__init__()
         self.fc = nn.Sequential(
@@ -37,7 +34,6 @@ class SEModule(nn.Module):
 
 
 def knn_graph_3d_fast(coords, k):
-    """🚀 兼容版图构建"""
     B, N, _ = coords.shape
     device = coords.device
 
@@ -45,7 +41,6 @@ def knn_graph_3d_fast(coords, k):
         knn = knn_points(coords, coords, K=k + 1)
         dst_idx = knn.idx[:, :, 1:]
     else:
-        # 备用方案：原生 cdist (分块计算防止OOM)
         dist = torch.cdist(coords, coords)
         _, dst_idx = torch.topk(dist, k=k+1, dim=-1, largest=False)
         dst_idx = dst_idx[:, :, 1:]
@@ -59,7 +54,6 @@ def knn_graph_3d_fast(coords, k):
 
 
 class GNOLayer(nn.Module):
-    """图神经算子层 (逻辑保持不变)"""
     def __init__(self, in_c, out_c):
         super().__init__()
         self.kernel_mlp = nn.Sequential(
@@ -85,7 +79,6 @@ class GNOLayer(nn.Module):
 
 
 class PointToGridGNO(nn.Module):
-    """🚀 兼容版几何-网格投影器"""
     def __init__(self, latent_dim, k=8):
         super().__init__()
         self.k = k
@@ -104,7 +97,6 @@ class PointToGridGNO(nn.Module):
             dist_topk = torch.sqrt(knn.dists)
             idx_topk = knn.idx
         else:
-            # 备用方案：分块 cdist 投影 (显存安全)
             chunk_size = 4096
             all_dists, all_idxs = [], []
             for i in range(0, M, chunk_size):
