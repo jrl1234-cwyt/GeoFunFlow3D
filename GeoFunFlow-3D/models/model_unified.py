@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from gino_encoder_3d import GINOEncoder3D
-from hybrid_decoder_unified import UnifiedHybridDecoder3d  # 🚀 确认类名匹配
+from hybrid_decoder_unified import UnifiedHybridDecoder3d  
 from dit_model_3d import DiT3D
 
 class GeoFunFlow3D(nn.Module):
