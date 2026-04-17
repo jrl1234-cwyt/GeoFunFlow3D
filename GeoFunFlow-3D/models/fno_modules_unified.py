@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import math
 
 class ChannelFirstLinear3d(nn.Module):
-    # (完全保留你的高鲁棒性 einsum 写法，不做改变)
     def __init__(self, in_channels, out_channels):
         super().__init__()
         scale = 1.0 / math.sqrt(in_channels)
@@ -16,7 +15,6 @@ class ChannelFirstLinear3d(nn.Module):
         return out + self.bias.view(1, -1, 1, 1, 1)
 
 class SpectralConv3d(nn.Module):
-    # (完全保留你的 RFFT 写法，不做改变)
     def __init__(self, in_ch, out_ch, modes1, modes2, modes3):
         super().__init__()
         self.in_ch, self.out_ch = in_ch, out_ch
@@ -44,11 +42,6 @@ class SpectralConv3d(nn.Module):
         return torch.fft.irfftn(out_ft, s=(D, H, W))
 
 class FNO_Block3d(nn.Module):
-    """
-    🌍 统一 FNO 块：
-    通过 use_norm 参数兼容不同的数据集特性。
-    表面稀疏数据 (BlendedNet) 关闭 Norm，体积密集数据 (Rotor37) 开启 Norm。
-    """
     def __init__(self, in_ch, out_ch, modes1, modes2, modes3, use_norm=True):
         super().__init__()
         self.spectral = SpectralConv3d(in_ch, out_ch, modes1, modes2, modes3)
