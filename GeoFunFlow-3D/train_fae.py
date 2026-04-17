@@ -50,12 +50,10 @@ def train_fae(args):
     print(f"🚀 启动 FAE | 任务: {args.task_type}")
     cudnn.benchmark = True
 
-    # 👇 修复卡死：对于 Rotor37 等体积庞大的数据，坚决关闭 cache！
     dataset = UnifiedAeroDataset(data_dir=args.data_dir, task_type=args.task_type,
                                  num_points=args.num_points, subset_size=args.subset_size,
-                                 use_cache=False)  # 🌟 改为 False！
+                                 use_cache=False) 
 
-    # 将 num_workers 调小为 2，减轻多进程切换带来的内存压力
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
                         num_workers=2, pin_memory=True, drop_last=True)
 
@@ -84,7 +82,7 @@ def train_fae(args):
         pbar = tqdm(loader, desc=f"Epoch {epoch} [FAE]")
         mu_eff = get_mu_fae(epoch, args.epochs)
 
-        # 🚀 核心修改：接收 sdf_s
+
         for in_feat, target_fields, target_scalars, radius_xyz, normals_s, sdf_s in pbar:
             in_feat, target_fields = in_feat.to(DEVICE), target_fields.to(DEVICE)
             target_scalars, radius_xyz, normals_s = target_scalars.to(DEVICE), radius_xyz.to(DEVICE), normals_s.to(DEVICE)
@@ -105,11 +103,11 @@ def train_fae(args):
 
             loss_phys = torch.tensor(0.0, device=DEVICE)
             if epoch >= args.phys_start and mu_eff > 0:
-                # 🚀 核心物理逻辑：将真实点云 SDF 映射为 3D 网格 SDF
+    
                 grid_sdf = point_to_grid_interpolate(coords, sdf_s, grid_size=field_grid.shape[2:])
 
                 if args.task_type == 'surface_aerodynamics':
-                    # 🚀 完美闭环：用真实的 grid_sdf 生成硬掩码
+        
                     mask = hard_mask_fn(grid_sdf)
                     loss_phys = physics_evaluator(field_grid, mask, radius_xyz)
                 else:
@@ -117,7 +115,6 @@ def train_fae(args):
                     loss_phys = physics_evaluator(field_grid, mask, radius_xyz,
                                                   normals=point_to_grid_interpolate(coords, normals_s))
 
-                # 🛡️ 【新增】拦截异常的物理损失
                 if torch.isnan(loss_phys) or torch.isinf(loss_phys):
                     loss_phys = torch.tensor(0.0, device=DEVICE)
                     ratio = 0.0
@@ -131,7 +128,7 @@ def train_fae(args):
             else:
                 loss = loss_data + tv_weight * loss_tv
 
-            # 🛡️ 【新增】防抱死系统：如果总 Loss 炸了，直接跳过当前 step，绝不污染网络！
+
             if torch.isnan(loss) or torch.isinf(loss):
                 print("\n⚠️ 警告: 捕获到 NaN 损失，紧急跳过当前批次！")
                 optimizer.zero_grad(set_to_none=True)
