@@ -22,14 +22,14 @@ class UnifiedAeroDataset(Dataset):
             self.mean = np.array([111145.8, 1.0892, 355.3], dtype=np.float32)
             self.std = np.array([35215.9, 0.3365, 18.0], dtype=np.float32)
         else:
-            raise ValueError(f"未知任务: {task_type}. 请检查任务名是否为 surface_aerodynamics 或 volume_thermodynamics")
+            raise ValueError(f" {task_type}.  surface_aerodynamics 或 volume_thermodynamics")
 
         all_files = sorted([os.path.join(self.data_dir, f) for f in os.listdir(self.data_dir) if f.endswith('.npz')])
 
         self.cached_data = []
         valid_count = 0
 
-        print(f"🔍 正在扫描 [{task_type}] - {split} 样本...")
+        print(f" [{task_type}] - {split} ...")
         for f in tqdm(all_files, desc="Caching Dataset"):
             try:
                 data_head = np.load(f)
@@ -91,7 +91,6 @@ class UnifiedAeroDataset(Dataset):
             dummy_angle = np.zeros((self.num_points, 1), dtype=np.float32)
             in_feat = np.concatenate([c_norm, normals_s, sdf_s, curvature_s, dummy_angle], axis=1)
 
-            # 🚀 核心修改：将真实的 sdf_s 作为第 6 个元素返回
             return (torch.from_numpy(in_feat), torch.from_numpy(t_norm), torch.from_numpy(data['scalars']),
                     torch.from_numpy(data['radius_xyz']), torch.from_numpy(normals_s), torch.from_numpy(sdf_s))
         except Exception:
