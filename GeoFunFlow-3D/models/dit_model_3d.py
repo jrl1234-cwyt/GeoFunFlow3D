@@ -10,7 +10,6 @@ from cache_functions.token_merge import token_merge
 from cache_functions.update_cache import update_cache
 from cache_functions.force_init import force_init
 
-# 引用 GINO 修正版中的 SE 模块
 from gino_encoder_3d import SEModule
 
 class TimestepEmbedder(nn.Module):
@@ -44,7 +43,7 @@ class DiTBlock3D(nn.Module):
         self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
         from timm.layers import Mlp
         self.mlp = Mlp(in_features=hidden_size, hidden_features=int(hidden_size * mlp_ratio), act_layer=nn.GELU)
-        self.se = SEModule(hidden_size) # MODIFIED: 加入 SE-Block 捕捉非线性特征
+        self.se = SEModule(hidden_size)
         self.adaLN_modulation = nn.Sequential(nn.SiLU(), nn.Linear(hidden_size, 6 * hidden_size))
 
     def forward(self, x, c, cache_dic=None, current=None):
@@ -52,7 +51,6 @@ class DiTBlock3D(nn.Module):
         shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = mod
         use_toca = (cache_dic is not None and current is not None and not self.training)
 
-        # Attention 路径
         if use_toca and current['type'] == 'ToCa':
             current['module'] = 'attn'
             fresh_indices, fresh_tokens = cache_cutfresh(cache_dic, x, current)
@@ -62,7 +60,6 @@ class DiTBlock3D(nn.Module):
         else:
             h = modulate(self.norm1(x), shift_msa, scale_msa)
 
-            # 🚀 救命修复：在第 0 步 (full) 时，必须把 cache_dic 传进去，让它保存 Attention Map！
             if use_toca and current['type'] == 'full':
                 current['module'] = 'attn'
                 attn_out, _ = self.attn(h, cache_dic, current)
@@ -76,9 +73,8 @@ class DiTBlock3D(nn.Module):
                 update_cache(cache_dic, torch.arange(x.shape[1], device=x.device).unsqueeze(0),
                              gate_msa.unsqueeze(1) * attn_out, current)
 
-        # MLP + SE 路径
         h = modulate(self.norm2(x_attn), shift_mlp, scale_mlp)
-        mlp_out = self.se(self.mlp(h))  # MODIFIED: MLP 后注入 SE
+        mlp_out = self.se(self.mlp(h)) 
         return x_attn + gate_mlp.unsqueeze(1) * mlp_out
 
 class DiT3D(nn.Module):
