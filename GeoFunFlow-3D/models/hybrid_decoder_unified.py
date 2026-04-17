@@ -4,10 +4,7 @@ import torch.nn.functional as F
 from fno_modules_unified import FNO_Block3d, ChannelFirstLinear3d
 
 class AnisotropicTVLoss3D(nn.Module):
-    """
-    🚀 物理全变分正则化 (Physical Total Variation)
-    数学推导: 根据复合函数求导链式法则，真实梯度的 L1 范数应除以放缩半径 R。
-    """
+
     def forward(self, x, radius_xyz=None):
         diff_d = torch.abs(x[:, :, 1:, :, :] - x[:, :, :-1, :, :])
         diff_h = torch.abs(x[:, :, :, 1:, :] - x[:, :, :, :-1, :])
@@ -46,9 +43,7 @@ class UnifiedSATORefiner3d(nn.Module):
         return refined_preds
 
 class UnifiedHybridDecoder3d(nn.Module):
-    """
-    🌍 统一解码器类名：已修正为 UnifiedHybridDecoder3d，确保 model_unified.py 导入成功。
-    """
+
     def __init__(self, task_type='surface_aerodynamics', latent_dim=128, geom_dim=9):
         super().__init__()
         self.task_type = task_type
