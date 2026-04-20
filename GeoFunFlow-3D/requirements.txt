@@ -5,3 +5,4 @@ pyvista
 pandas
 timm
 # pytorch3d  # Recommended for faster KNN operations, requires specialized installation instructions
+
