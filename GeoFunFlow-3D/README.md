@@ -28,6 +28,6 @@ GeoFunFlow-3D addresses the severe VRAM bottlenecks and high-frequency spectral 
 Clone this repository and install the required dependencies:
 
 ```bash
-git clone [https://github.com/](https://github.com/)[YourUsername]/GeoFunFlow-3D.git
-cd GeoFunFlow-3D
+git clone [https://github.com/jrl1234-cwyt/GeoFunFlow3D.git](https://github.com/jrl1234-cwyt/GeoFunFlow3D.git)
+cd GeoFunFlow3D
 pip install -r requirements.txt
