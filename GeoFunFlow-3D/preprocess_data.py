@@ -130,18 +130,21 @@ def process_rotor37_all(root_dir, output_dir):
         print(f"⚠️ [Rotor37] 警告: 仍有 {missing_scalars_count} 个样本找不到 scalars.csv！")
 
 if __name__ == "__main__":
+    # ==========================================
+    # 绝对统一的数据路径配置 (已适配 GitHub 开源)
+    # ==========================================
+    # 自动获取当前 preprocess_data.py 所在的文件夹作为工作根目录
+    BASE_WORK_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    BASE_WORK_DIR = "/users/uestc7/JRL/GeoFunFlow/3维统一架构"
-
-
+    # 1. BlendedNet 路径设置 (假设原始数据放在项目根目录的 blendednet 文件夹下)
     BLENDED_RAW_DIR = os.path.join(BASE_WORK_DIR, "blendednet")
-
     BLENDED_OUT_DIR = os.path.join(BASE_WORK_DIR, "Processed_BlendedNet_SDF")
 
+    # 2. Rotor37 路径设置 (假设原始数据放在项目根目录的 rotor37 文件夹下)
     ROTOR_RAW_DIR = os.path.join(BASE_WORK_DIR, "rotor37")
     ROTOR_OUT_DIR = os.path.join(BASE_WORK_DIR, "Processed_Rotor37_SDF")
 
-
+    # 执行处理
     print("====== 正在启动带真实 SDF 的数据预处理管线 ======")
     process_blendednet_all(BLENDED_RAW_DIR, BLENDED_OUT_DIR)
     process_rotor37_all(ROTOR_RAW_DIR, ROTOR_OUT_DIR)
