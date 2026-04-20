@@ -1,4 +1,8 @@
+import sys
 import os
+# 将 models 和 utils 文件夹自动加入系统路径，防止导入报错
+sys.path.append(os.path.join(os.path.dirname(__file__), 'models'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'utils'))
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
